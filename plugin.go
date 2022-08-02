@@ -54,6 +54,7 @@ type Plugin struct {
 	Ulimits                   []string
 	MountPoints               []string
 	Volumes                   []string
+	EfsVolumes                []string
 	PlacementConstraints      string
 
 	// ServiceNetworkAssignPublicIP - Whether the task's elastic network interface receives a public IP address. The default value is DISABLED.
@@ -66,6 +67,7 @@ type Plugin struct {
 	// ServiceNetworkSubnets represents the VPC security groups to use when
 	// running awsvpc network mode.
 	ServiceNetworkSubnets []string
+	Privileged           bool
 }
 
 // Struct for placement constraints.
@@ -112,6 +114,14 @@ func (p *Plugin) Exec() error {
 		p.ContainerName = p.Family + "-container"
 	}
 
+	// Fargate doesn't support privileged mode
+	if (p.Compatibilities == "FARGATE") {
+		if (p.Privileged) {
+			fmt.Println("Privileged mode applicable only for EC2 launch type! Ignoring parameter: privileged.")
+			p.Privileged = false
+		}
+	}
+
 	definition := ecs.ContainerDefinition{
 		Command: []*string{},
 
@@ -135,6 +145,7 @@ func (p *Plugin) Exec() error {
 		//User: aws.String("String"),
 		VolumesFrom: []*ecs.VolumeFrom{},
 		//WorkingDirectory: aws.String("String"),
+		Privileged: aws.Bool(p.Privileged),
 	}
 	volumes := []*ecs.Volume{}
 
@@ -167,6 +178,21 @@ func (p *Plugin) Exec() error {
 		}
 
 		volumes = append(volumes, &vol)
+	}
+
+	// EFS Volumes
+	for _, efsElem := range p.EfsVolumes {
+	    cleanedEfs := strings.Trim(efsElem, " ")
+	    parts := strings.SplitN(cleanedEfs, " ", 3)
+	    vol := ecs.Volume{
+            Name: aws.String(parts[0]),
+	    }
+	    vol.EfsVolumeConfiguration = &ecs.EFSVolumeConfiguration {
+	        FileSystemId: aws.String(parts[1]),
+	        RootDirectory: aws.String(parts[2]),
+	    }
+
+	    volumes = append(volumes, &vol)
 	}
 
 	// Mount Points

@@ -231,10 +231,20 @@ func main() {
 			Usage:  "ECS volume definitions",
 			EnvVar: "PLUGIN_VOLUMES",
 		},
+		cli.StringSliceFlag{
+			Name:   "efs-volumes",
+			Usage:  "EFS volume definitions",
+			EnvVar: "PLUGIN_EFS_VOLUMES",
+		},
 		cli.StringFlag{
 			Name:   "placement-constraints",
 			Usage:  "json array of placement constraints",
 			EnvVar: "PLUGIN_PLACEMENT_CONSTRAINTS",
+		},
+		cli.BoolFlag{
+			Name:   "privileged",
+			Usage:  "Container will run in privileged mode (applicable only for EC2 launch type)",
+			EnvVar: "PLUGIN_PRIVILEGED",
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
@@ -285,7 +295,9 @@ func run(c *cli.Context) error {
 		Ulimits:                      c.StringSlice("ulimits"),
 		MountPoints:                  c.StringSlice("mount-points"),
 		Volumes:                      c.StringSlice("volumes"),
+		EfsVolumes:                   c.StringSlice("efs-volumes"),
 		PlacementConstraints:         c.String("placement-constraints"),
+		Privileged:                   c.Bool("privileged"),
 	}
 	return plugin.Exec()
 }
