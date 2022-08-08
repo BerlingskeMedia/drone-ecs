@@ -70,7 +70,7 @@ kind: "secret"
 name: "drone-ecr-registry"
 get:
   path: "/ci/production/drone-ecs"
-  name: "aws_access_key_secret"
+  name: "x-drone-ecr-host"
 
 ---
 kind: "secret"
