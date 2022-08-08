@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -25,6 +27,7 @@ type Plugin struct {
 	Service                   string
 	ContainerName             string
 	DockerImage               string
+	TagFile                   string
 	Tag                       string
 	Cluster                   string
 	LogDriver                 string
@@ -67,7 +70,7 @@ type Plugin struct {
 	// ServiceNetworkSubnets represents the VPC security groups to use when
 	// running awsvpc network mode.
 	ServiceNetworkSubnets []string
-	Privileged           bool
+	Privileged            bool
 }
 
 // Struct for placement constraints.
@@ -99,6 +102,30 @@ func (p *Plugin) Exec() error {
 	var svc *ecs.ECS
 	sess := session.Must(session.NewSession(&awsConfig))
 
+	if p.Tag == "" && p.TagFile != "" {
+		if _, err := os.Stat(p.TagFile); err == nil {
+			TagFileRead, err := os.Open(p.TagFile)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			defer TagFileRead.Close()
+
+			scanner := bufio.NewScanner(TagFileRead)
+			var line []string
+			scanner.Scan()
+			line = strings.Split(scanner.Text(), ",")
+			p.Tag = line[0]
+
+		} else if errors.Is(err, os.ErrNotExist) {
+			log.Fatal("TagFile: " + p.TagFile + " does not exist.")
+		}
+
+	} else if p.Tag == "" && p.TagFile == "" {
+		log.Fatal("Image tag or Tag file must be set.")
+	}
+
 	// If user role ARN is set then assume role here
 	if len(p.UserRoleArn) > 0 {
 		awsConfigArn := aws.Config{Region: aws.String(p.Region)}
@@ -115,8 +142,8 @@ func (p *Plugin) Exec() error {
 	}
 
 	// Fargate doesn't support privileged mode
-	if (p.Compatibilities == "FARGATE") {
-		if (p.Privileged) {
+	if p.Compatibilities == "FARGATE" {
+		if p.Privileged {
 			fmt.Println("Privileged mode applicable only for EC2 launch type! Ignoring parameter: privileged.")
 			p.Privileged = false
 		}
@@ -182,17 +209,17 @@ func (p *Plugin) Exec() error {
 
 	// EFS Volumes
 	for _, efsElem := range p.EfsVolumes {
-	    cleanedEfs := strings.Trim(efsElem, " ")
-	    parts := strings.SplitN(cleanedEfs, " ", 3)
-	    vol := ecs.Volume{
-            Name: aws.String(parts[0]),
-	    }
-	    vol.EfsVolumeConfiguration = &ecs.EFSVolumeConfiguration {
-	        FileSystemId: aws.String(parts[1]),
-	        RootDirectory: aws.String(parts[2]),
-	    }
+		cleanedEfs := strings.Trim(efsElem, " ")
+		parts := strings.SplitN(cleanedEfs, " ", 3)
+		vol := ecs.Volume{
+			Name: aws.String(parts[0]),
+		}
+		vol.EfsVolumeConfiguration = &ecs.EFSVolumeConfiguration{
+			FileSystemId:  aws.String(parts[1]),
+			RootDirectory: aws.String(parts[2]),
+		}
 
-	    volumes = append(volumes, &vol)
+		volumes = append(volumes, &vol)
 	}
 
 	// Mount Points
@@ -314,8 +341,7 @@ func (p *Plugin) Exec() error {
 
 	// EntryPoint
 	for _, v := range p.EntryPoint {
-		var command string
-		command = v
+		var command string = v
 		definition.EntryPoint = append(definition.EntryPoint, &command)
 	}
 
@@ -367,23 +393,23 @@ func (p *Plugin) Exec() error {
 	if cleanedCompatibilities != "" && len(compatibilitySlice) != 0 {
 		params.RequiresCompatibilities = aws.StringSlice(compatibilitySlice)
 	}
-        // placement constraints
+	// placement constraints
 	if p.PlacementConstraints != "" && len(p.PlacementConstraints) != 0 {
-	var placementConstraint []placementConstraintsTemplate
-	constraintParsingError := json.Unmarshal([]byte(p.PlacementConstraints), &placementConstraint)
-	if constraintParsingError != nil {
-		constraintsParseWrappedErr := errors.New(placementConstraintsBaseParseErr + constraintParsingError.Error())
-		return constraintsParseWrappedErr
+		var placementConstraint []placementConstraintsTemplate
+		constraintParsingError := json.Unmarshal([]byte(p.PlacementConstraints), &placementConstraint)
+		if constraintParsingError != nil {
+			constraintsParseWrappedErr := errors.New(placementConstraintsBaseParseErr + constraintParsingError.Error())
+			return constraintsParseWrappedErr
 
+		}
+		for _, constraint := range placementConstraint {
+			pc := ecs.TaskDefinitionPlacementConstraint{}
+			// distinctInstance constraint can only be specified when launching a task or creating a service. So, currently, the only available type is memberOf
+			pc.SetType(constraint.Type)
+			pc.SetExpression(constraint.Expression)
+			params.PlacementConstraints = append(params.PlacementConstraints, &pc)
+		}
 	}
-	for _, constraint := range placementConstraint {
-		pc := ecs.TaskDefinitionPlacementConstraint{}
-		// distinctInstance constraint can only be specified when launching a task or creating a service. So, currently, the only available type is memberOf
-		pc.SetType(constraint.Type)
-		pc.SetExpression(constraint.Expression)
-		params.PlacementConstraints = append(params.PlacementConstraints, &pc)
-	}
-        }
 
 	if len(p.TaskCPU) != 0 {
 		params.Cpu = aws.String(p.TaskCPU)

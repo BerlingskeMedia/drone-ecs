@@ -29,81 +29,52 @@ steps:
       go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/${DRONE_REPO_NAME}
     fi
 
-- name: build_linux_arm64
-  image: golang:1.13
-  depends_on: [ test ]
-  environment:
-    GOOS: linux
-    GOARCH: arm64
-    CGO_ENABLED: 0
-  commands:
-  - |
-    if test "${DRONE_TAG}" = ""; then
-      go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/${DRONE_REPO_NAME}
-    else
-      go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/${DRONE_REPO_NAME}
-    fi
-
-- name: build_linux_arm
-  image: golang:1.13
-  depends_on: [ test ]
-  environment:
-    GOOS: linux
-    GOARCH: arm
-    CGO_ENABLED: 0
-    GOARM: 7
-  commands:
-  - |
-    if test "${DRONE_TAG}" = ""; then
-      go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm/${DRONE_REPO_NAME}
-    else
-      go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm/${DRONE_REPO_NAME}
-    fi
-
 - name: publish_linux_amd64
-  image: plugins/docker
   depends_on: [ build_linux_amd64 ]
+  image: plugins/ecr
   settings:
-    auto_tag: true
-    username:
-      from_secret: docker_username
-    password:
-      from_secret: docker_password
-    repo:
-      from_secret: plugin_repo
-    dockerfile: Dockerfile
-  when:
-    event: [ tag, push ]
+    mirror: https://proxy.docker.all.berlingskemedia.net
+    purge: true
+    tags:
+      - latest
+      - ${DRONE_COMMIT}
+    registry: 815296035528.dkr.ecr.eu-west-1.amazonaws.com
+      from_secret: drone-ecr-registry
+    repo: 815296035528.dkr.ecr.eu-west-1.amazonaws.com/ci-production-images-ecr/php
+      from_secret: drone-ecr-url
+    dockerfile: Dockerfile-php-base
+    access_key:
+      from_secret: aws_access_key
+    secret_key:
+      from_secret: aws_access_key_secret
+    region: eu-west-1
 
-- name: publish_linux_arm64
-  image: plugins/docker
-  depends_on: [ build_linux_arm64 ]
-  settings:
-    auto_tag: true
-    auto_tag_suffix: linux-arm64
-    username:
-      from_secret: docker_username
-    password:
-      from_secret: docker_password
-    repo:
-      from_secret: plugin_repo
-    dockerfile: Dockerfile.arm64
-  when:
-    event: [ tag, push ]
 
-- name: publish_linux_arm
-  image: plugins/docker
-  depends_on: [ build_linux_arm ]
-  settings:
-    auto_tag: true
-    auto_tag_suffix: linux-arm
-    username:
-      from_secret: docker_username
-    password:
-      from_secret: docker_password
-    repo:
-      from_secret: plugin_repo
-    dockerfile: Dockerfile.arm
-  when:
-     event: [ tag, push ]
 
+---
+kind: "secret"
+name: "aws_access_key"
+get:
+  path: "drone/ci-production-images"
+  name: "aws_access_key"
+
+---
+kind: "secret"
+name: "aws_access_key_secret"
+get:
+  path: "drone/ci-production-images"
+  name: "aws_access_key_secret"
+
+---
+kind: "secret"
+name: "drone-ecr-registry"
+get:
+  path: "/ci/production/drone-ecs"
+  name: "aws_access_key_secret"
+
+---
+kind: "secret"
+name: "drone-ecr-url"
+get:
+  path: "ci/production/drone-ecs"
+  name: "x-drone-ecr-url"

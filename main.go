@@ -66,9 +66,16 @@ func main() {
 			EnvVar: "PLUGIN_DOCKER_IMAGE",
 		},
 		cli.StringFlag{
+			Name:   "tag-file",
+			Usage:  "AWS tag file",
+			EnvVar: "PLUGIN_TAG_FILE",
+			Value:  "",
+		},
+		cli.StringFlag{
 			Name:   "tag",
 			Usage:  "AWS tag",
 			EnvVar: "PLUGIN_TAG",
+			Value:  "",
 		},
 		cli.StringFlag{
 			Name:   "cluster",
@@ -263,6 +270,7 @@ func run(c *cli.Context) error {
 		Service:                      c.String("service"),
 		ContainerName:                c.String("container-name"),
 		DockerImage:                  c.String("docker-image"),
+		TagFile:                      c.String("tag-file"),
 		Tag:                          c.String("tag"),
 		Cluster:                      c.String("cluster"),
 		LogDriver:                    c.String("log-driver"),
