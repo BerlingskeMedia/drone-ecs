@@ -31,18 +31,18 @@ steps:
 
 - name: publish_linux_amd64
   depends_on: [ build_linux_amd64 ]
-  image: plugins/ecr
+  image: plugins/drone-ecs
   settings:
     mirror: https://proxy.docker.all.berlingskemedia.net
     purge: true
     tags:
       - latest
       - ${DRONE_COMMIT}
-    registry: 815296035528.dkr.ecr.eu-west-1.amazonaws.com
+    registry:
       from_secret: drone-ecr-registry
-    repo: 815296035528.dkr.ecr.eu-west-1.amazonaws.com/ci-production-images-ecr/php
+    repo:
       from_secret: drone-ecr-url
-    dockerfile: Dockerfile-php-base
+    dockerfile: Dockerfile
     access_key:
       from_secret: aws_access_key
     secret_key:
