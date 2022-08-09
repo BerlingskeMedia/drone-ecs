@@ -70,11 +70,11 @@ kind: "secret"
 name: "drone-ecr-registry"
 get:
   path: "/ci/production/drone-ecs"
-  name: "x-drone-ecr-host"
+  name: "ecr-host"
 
 ---
 kind: "secret"
 name: "drone-ecr-url"
 get:
   path: "ci/production/drone-ecs"
-  name: "x-drone-ecr-url"
+  name: "ecr-url"

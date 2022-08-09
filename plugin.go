@@ -122,8 +122,9 @@ func (p *Plugin) Exec() error {
 			log.Fatal("TagFile: " + p.TagFile + " does not exist.")
 		}
 
-	} else if p.Tag == "" && p.TagFile == "" {
-		log.Fatal("Image tag or Tag file must be set.")
+	}
+	if p.Tag == "" {
+		log.Fatal("Image tag or Tag file not set or Tag file empty.")
 	}
 
 	// If user role ARN is set then assume role here
