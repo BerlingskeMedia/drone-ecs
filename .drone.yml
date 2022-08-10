@@ -10,6 +10,8 @@ steps:
 - name: test
   image: golang:1.13
   pull: true
+  settings:
+    mirror: https://proxy.docker.all.berlingskemedia.net
   commands:
   - go vet
   - go test -cover -coverprofile=coverage.out
@@ -21,6 +23,8 @@ steps:
     GOOS: linux
     GOARCH: amd64
     CGO_ENABLED: 0
+  settings:
+    mirror: https://proxy.docker.all.berlingskemedia.net
   commands:
   - |
     if test "${DRONE_TAG}" = ""; then
