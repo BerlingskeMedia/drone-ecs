@@ -55,26 +55,26 @@ steps:
 kind: "secret"
 name: "aws_access_key"
 get:
-  path: "drone/ci-production-images"
+  path: "drone/ci-production-drone-ecs"
   name: "aws_access_key"
 
 ---
 kind: "secret"
 name: "aws_access_key_secret"
 get:
-  path: "drone/ci-production-images"
+  path: "drone/ci-production-drone-ecs"
   name: "aws_access_key_secret"
 
 ---
 kind: "secret"
 name: "drone-ecr-registry"
 get:
-  path: "/ci/production/drone-ecs"
+  path: "drone/ci-production-drone-ecs"
   name: "ecr-host"
 
 ---
 kind: "secret"
 name: "drone-ecr-url"
 get:
-  path: "ci/production/drone-ecs"
+  path: "drone/ci-production-drone-ecs"
   name: "ecr-url"
