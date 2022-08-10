@@ -11,7 +11,8 @@ steps:
   image: golang:1.13
   pull: true
   settings:
-    mirror: https://proxy.docker.all.berlingskemedia.net
+    mirror:
+      from_secret: docker_proxy_mirror
   commands:
   - go vet
   - go test -cover -coverprofile=coverage.out
@@ -24,7 +25,8 @@ steps:
     GOARCH: amd64
     CGO_ENABLED: 0
   settings:
-    mirror: https://proxy.docker.all.berlingskemedia.net
+    mirror:
+      from_secret: docker_proxy_mirror
   commands:
   - |
     if test "${DRONE_TAG}" = ""; then
@@ -37,7 +39,8 @@ steps:
   depends_on: [ build_linux_amd64 ]
   image: plugins/ecr
   settings:
-    mirror: https://proxy.docker.all.berlingskemedia.net
+    mirror:
+      from_secret: docker_proxy_mirror
     purge: true
     tags:
       - latest
