@@ -35,7 +35,7 @@ steps:
 
 - name: publish_linux_amd64
   depends_on: [ build_linux_amd64 ]
-  image: plugins/drone-ecs
+  image: plugins/ecr
   settings:
     mirror: https://proxy.docker.all.berlingskemedia.net
     purge: true
