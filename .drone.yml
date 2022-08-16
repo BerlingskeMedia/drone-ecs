@@ -55,8 +55,19 @@ steps:
     secret_key:
       from_secret: aws_access_key_secret
     region: eu-west-1
+  when:
+    event:
+    - push
+    branch:
+    - master
 
 
+trigger:
+  event:
+  - pull_request
+  - push
+  branch:
+  - master
 
 ---
 kind: "secret"
